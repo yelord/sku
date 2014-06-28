@@ -13,5 +13,18 @@ Tips
         选中追加模式：
         1.分别选择`基础资料`及`追加资料` xls文件，点追加按钮。
               Version: 0.1.2  yelord@qq.com
+              
+Run           
 ===================================================
+        python sku.py
         
+        or 
+        
+windows: build exe
+------------------
+pyinstaller 2.1
+        
+        python ..\pyinstaller.py  -F -w -i logo.ico sku.py
+        
+        -F: 生成单个文件
+        -w: 有窗口界面，不显示控制台
