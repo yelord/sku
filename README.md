@@ -28,3 +28,8 @@ pyinstaller 2.1
         
         -F: 生成单个文件
         -w: 有窗口界面，不显示控制台
+
+参考资料
+--------
+* [tkinter] http://effbot.org/tkinterbook/
+* [python-excel]  https://github.com/python-excel/
