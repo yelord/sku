@@ -5,7 +5,7 @@
 #
 # 另拷贝指定文件列表中的文件到指定目录
 # -------------------------------------------------------------------
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 from Tkinter import *
 import ttk
@@ -15,6 +15,18 @@ import shutil
 import re
 
 from readxls import ReadData, AddContentFromXls
+from image import img_resize
+
+import time
+# 计时器
+def timeit(func):
+    def wrapper():
+        start = time.clock()
+        func()
+        end =time.clock()
+        print u'耗时:', end - start
+    return wrapper
+
 
 # import datetime
 # import logging
@@ -107,21 +119,29 @@ class main(object):
                                command=self.chgmode, onvalue="mode", offvalue="default")
         self.chk.grid(row=3, column=0, sticky=W)
 
+        self.resizecb = Button(self.mainF, text=u'生成标准尺寸到..', command=self.DoResize)
+        self.resizecb.grid(row=3, column=1, padx=5, sticky=E)
+
         self.rencb = Button(self.mainF, text=DICT['default'][2], command=self.DoRename)
-        self.rencb.grid(row=3, column=2, padx=10, ipadx=40, sticky=E)
+        self.rencb.grid(row=3, column=2, padx=10,  sticky=E)
 
         self.cpcb = Button(self.mainF, text=DICT['default'][3], command=self.Do_cpcb)
-        self.cpcb.grid(row=3, column=3, padx=10, ipadx=40, sticky=E)  #
+        self.cpcb.grid(row=3, column=3, padx=10, sticky=E)  #
 
         show_tips(self,u'''
         ==========================tips=====================
         默认：
         1.首先请点`图片文件所在目录`按钮选择图片文件主目录。
         2.如果要检查或者修改文件名，[ 把空格与()去掉，改为_ ]，则点`规范文件名`执行
-        3.要拷贝图片，请先点`图片需求清单文件`按钮选择要拷贝的图片清单文件.
-        4.清单文件支持.xls或.txt文件，要求xls第一列(A)放条码，txt则每行放一个条码。
+        3.如果要调整图片大小到标准尺寸(640*640),点`生成标准尺寸`，后选则保存目录。
+        4.要拷贝图片，请先点`图片需求清单文件`按钮选择要拷贝的图片清单文件.
+        5.清单文件支持.xls或.txt文件，要求xls第一列(A)放条码，txt则每行放一个条码。
+
         选中追加模式：
         1.分别选择`基础资料`及`追加资料` xls文件，点追加按钮。
+        ---------------------------------------------------
+        !!注意：目录都会自动遍历，所以目标目录请不要放到源目录下,避免重复处理!!
+
               Version: %s  yelord@qq.com
         ===================================================
         '''%__version__)
@@ -146,11 +166,13 @@ class main(object):
             self.curdir.set(config.get('base_file',''))
             self.listfile.set(config.get('add_file',''))
             self.rencb['state'] = DISABLED
+            self.resizecb['state'] = DISABLED
             show_tips(self,u'==== 已切换到 追加 模式 =====')
         else:
             self.curdir.set(config.get('dir_select',''))
             self.listfile.set(config.get('list_file',''))
             self.rencb['state'] = NORMAL
+            self.resizecb['state'] = NORMAL
             show_tips(self,u'==== 已切换到 默认 模式 =====')
         # mode & default
         self.basecb['text'] = DICT[chk][0]
@@ -246,6 +268,45 @@ class main(object):
             tips = u'文件处理发生错误'
             show_tips(self,tips)
             # log.error(tips)
+
+    def DoResize(self):
+        # 图片目录
+        cur_dir = self.curdir.get()
+        if not cur_dir:
+            show_tips(self,u'!!!请先选择路径!!!')
+            return
+        cur_dir = as_unicode(cur_dir)
+        #save config
+        setConfig()
+
+        # save to
+        to_dir = tkFileDialog.askdirectory(title=u'标准尺寸文件将保存到的目录')
+        if not to_dir:
+            return   #取消
+
+        to_dir = as_unicode(to_dir)
+        show_tips(self,u'''
+                ---------   开始裁剪图片  --------
+                ''')
+
+        try:
+            show_tips(self,cur_dir + u'的文件处理中，保存到:' + to_dir )
+
+            self.proc.start()
+            _sum = 0
+            for  parent, dirnames, filenames in os.walk(cur_dir):
+                for fn in filenames:
+                    if os.path.splitext(fn)[-1].lower() == '.jpg':
+                        img_resize(os.path.join(parent,fn), os.path.join(to_dir,fn) )
+                        _sum+=1
+                        tips = u'图片 %s 裁剪完成' % (fn)
+                        show_tips(self,tips)
+            self.proc.stop()
+            tips = cur_dir + u'目录下图片文件裁剪完成。\n----共修改了' + str(_sum) + u'个文件-----'
+            show_tips(self,tips)
+        except IOError:
+            tips = u'文件处理发生错误'
+            show_tips(self,tips)
 
 
      #选择图片目录
